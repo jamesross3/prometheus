@@ -1338,6 +1338,14 @@ func (sl *scrapeLoop) scrapeAndReport(last, appendTime time.Time, errc chan<- er
 
 	var contentType string
 	scrapeCtx, cancel := context.WithTimeout(sl.parentCtx, sl.timeout)
+	select {
+	case <-scrapeCtx.Done():
+		deadline, _ := scrapeCtx.Deadline()
+		level.Error(sl.l).Log("msg", "Scrape context done before even making scrape request!", "scrapeDeadline", deadline)
+		scrapeCtx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	default:
+	}
+	level.Debug(sl.l).Log("msg", "Making scrape request.")
 	contentType, scrapeErr = sl.scraper.scrape(scrapeCtx, buf)
 	cancel()
 
